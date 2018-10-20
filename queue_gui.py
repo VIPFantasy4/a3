@@ -138,6 +138,19 @@ class QuickQuestion(tk.Frame):
         tk.Label(self._bar, bg='white', text='Name', font='Arial 10 bold').grid(row=1, column=1, sticky=tk.W)
         tk.Label(self._bar, bg='white', text='Questions Asked', font='Arial 10 bold').grid(row=1, column=2, sticky=tk.W)
         tk.Label(self._bar, bg='white', text='Time', font='Arial 10 bold').grid(row=1, column=3, sticky=tk.W)
+        tk.Frame(self._bar, bg='#c0c0c0').grid(row=2, columnspan=5, ipadx=227, pady=4)
+        for i in range(len(waiting_list)):
+            row = i + 3
+            tk.Label(self._bar, bg='white', text=i + 1).grid(row=row, column=0, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=waiting_list[i][0]).grid(row=row, column=1, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=waiting_list[i][1]).grid(row=row, column=2, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=waiting_list[i][2]).grid(row=row, column=3, sticky=tk.W)
+            button_field = tk.Frame(self._bar, bg='white', relief=tk.GROOVE)
+            cancel = tk.Button(button_field, bg='#f6a5a3', relief=tk.GROOVE)
+            accept = tk.Button(button_field, bg='#a0e0aa', relief=tk.GROOVE)
+            cancel.pack(side=tk.LEFT, ipadx=9)
+            accept.pack(side=tk.LEFT, ipadx=9)
+            button_field.grid(row=row, column=4, sticky=tk.W)
 
 
 class LongQuestion(tk.Frame):
@@ -172,7 +185,11 @@ class LongQuestion(tk.Frame):
         waiting_list = list(get_waiting_list(get_long_student_dict(), now))
         if not waiting_list:
             return
-        tk.Frame(self._bar, bg='#c0c0c0').pack(ipadx=227, pady=10)
+        tk.Frame(self._bar, bg='#c0c0c0').grid(row=0, columnspan=5, ipadx=227, pady=10)
+        tk.Label(self._bar, bg='white', text='#', font='Arial 10 bold').grid(row=1, column=0, sticky=tk.W)
+        tk.Label(self._bar, bg='white', text='Name', font='Arial 10 bold').grid(row=1, column=1, sticky=tk.W)
+        tk.Label(self._bar, bg='white', text='Questions Asked', font='Arial 10 bold').grid(row=1, column=2, sticky=tk.W)
+        tk.Label(self._bar, bg='white', text='Time', font='Arial 10 bold').grid(row=1, column=3, sticky=tk.W)
 
 
 class QueueApp:
@@ -227,7 +244,7 @@ class QueueApp:
         now = time.time()
         self._quick_question.refresh(now)
         self._long_question.refresh(now)
-
+        time.sleep(4)
         self.timer_run(arg)
 
 
