@@ -1,24 +1,85 @@
 import tkinter as tk
 from tkinter import messagebox
-from tkinter.messagebox import askyesno, showinfo, askquestion
+from tkinter.messagebox import showinfo, showwarning, showerror, askquestion
+from tkinter import ttk
 
 import sys
 import time
+import threading
 
 # Fill these in with your details
 __author__ = ''
 __email__ = ''
 __date__ = ''
 
-
-def add_student_quick():
-    # TODO: code
-    print(1)
+QUICK_STUDENT_DICT = {}
+LONG_STUDENT_DICT = {}
 
 
-def add_student_long():
-    # TODO: code
-    print(2)
+def get_quick_student_dict():
+    return QUICK_STUDENT_DICT
+
+
+def get_long_student_dict():
+    return LONG_STUDENT_DICT
+
+
+def add_quick_student_dict():
+    display_entry_widget(get_quick_student_dict())
+
+
+def add_long_student_dict():
+    display_entry_widget(get_long_student_dict())
+
+
+def display_entry_widget(student_dict):
+    def add_student_dict():
+        name = entry.get()
+        if name and not name.strip():
+            showerror('Not Just Typed Spaces', 'Please give the proper name!')
+            return
+        name = name.strip()
+        if name:
+            if name not in student_dict:
+                student_dict[name] = [True, 0, time.time()]
+            elif student_dict[name][0]:
+                showwarning('Invalid Participation', "You're in line already!")
+                return
+            else:
+                student_dict[name] = [True, student_dict[name][1] + 1, time.time()]
+            root.destroy()
+        else:
+            showerror('Not Be Empty', 'Please give the proper name!')
+
+    root = tk.Tk()
+    root.title('')
+    root.wm_attributes('-topmost', 1)
+    label = tk.Label(root, text='Type Your Name:')
+    label.pack(side=tk.LEFT)
+    entry = tk.Entry(root, width=20)
+    entry.pack(side=tk.LEFT, padx=5)
+    join = tk.Button(root, text='Join', command=add_student_dict)
+    join.pack(side=tk.RIGHT)
+    root.mainloop()
+
+
+def get_display(record, now):
+    delta = int(now - record)
+    if delta < 60:
+        return 'a few seconds ago'
+    if delta < 120:
+        return 'a minute ago'
+    if delta < 3600:
+        return '{} minutes ago'.format(delta // 60)
+    if delta < 7200:
+        return '1 hour ago'
+    return '{} hours age'.format(delta // 3600)
+
+
+def get_waiting_list(student_dict, now):
+    for key, value in student_dict.items():
+        if value[0]:
+            yield (key, value[1], get_display(value[2], now))
 
 
 class TitlePanel(tk.Frame):
@@ -58,9 +119,25 @@ class QuickQuestion(tk.Frame):
                                                                                                         ipadx=20,
                                                                                                         ipady=5)
         tk.Button(self, text='Request Quick Help', bg='#5cb85c', fg='#ffffff', relief=tk.RIDGE,
-                  command=add_student_quick).pack(ipadx=15, ipady=5, pady=5)
-        self._hr = tk.Frame(self, bg='#c0c0c0')
-        self._hr.pack(ipadx=227, pady=10)
+                  command=add_quick_student_dict).pack(ipadx=15, ipady=5, pady=5)
+        tk.Frame(self, bg='#c0c0c0').pack(ipadx=227, pady=10)
+        self._notice = tk.Label(self, text='No students in queue.', bg='white', justify=tk.LEFT)
+        self._notice.pack(anchor=tk.W, ipadx=20, ipady=5)
+        self._bar = tk.Frame(self, bg='white')
+        self._bar.pack()
+
+    def refresh(self, now):
+        children = list(self._bar.children.values())
+        for i in range(len(children)):
+            children[i].destroy()
+        waiting_list = list(get_waiting_list(get_quick_student_dict(), now))
+        if not waiting_list:
+            return
+        tk.Frame(self._bar, bg='#c0c0c0').grid(row=0, columnspan=5, ipadx=227, pady=10)
+        tk.Label(self._bar, bg='white', text='#', font='Arial 10 bold').grid(row=1, column=0, sticky=tk.W)
+        tk.Label(self._bar, bg='white', text='Name', font='Arial 10 bold').grid(row=1, column=1, sticky=tk.W)
+        tk.Label(self._bar, bg='white', text='Questions Asked', font='Arial 10 bold').grid(row=1, column=2, sticky=tk.W)
+        tk.Label(self._bar, bg='white', text='Time', font='Arial 10 bold').grid(row=1, column=3, sticky=tk.W)
 
 
 class LongQuestion(tk.Frame):
@@ -80,9 +157,22 @@ class LongQuestion(tk.Frame):
                             '\n     ● Assignment help\n', bg='white', justify=tk.LEFT).pack(side=tk.TOP, anchor=tk.W,
                                                                                             ipadx=20, ipady=5)
         tk.Button(self, text='Request Long Help', bg='#5bc0de', fg='#ffffff', relief=tk.RIDGE,
-                  command=add_student_long).pack(ipadx=15, ipady=5, pady=5)
+                  command=add_long_student_dict).pack(ipadx=15, ipady=5, pady=5)
         self._hr = tk.Frame(self, bg='#c0c0c0')
         self._hr.pack(ipadx=227, pady=10)
+        self._notice = tk.Label(self, text='No students in queue.', bg='white', justify=tk.LEFT)
+        self._notice.pack(anchor=tk.W, ipadx=20, ipady=5)
+        self._bar = tk.Frame(self, bg='white')
+        self._bar.pack()
+
+    def refresh(self, now):
+        children = list(self._bar.children.values())
+        for i in range(len(children)):
+            children[i].destroy()
+        waiting_list = list(get_waiting_list(get_long_student_dict(), now))
+        if not waiting_list:
+            return
+        tk.Frame(self._bar, bg='#c0c0c0').pack(ipadx=227, pady=10)
 
 
 class QueueApp:
@@ -111,6 +201,14 @@ class QueueApp:
         self._long_question.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
         self._choice_panel.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+
+        # Timer
+        a = ['111', ]
+        self._timer = threading.Thread(target=self.timer_run, args=a)
+        self._timer.setDaemon(True)
+        self._timer.start()
+
+        # Finger-Guessing Game
         pass
 
     def close(self):
@@ -123,6 +221,14 @@ class QueueApp:
             return True
         else:
             return False
+
+    def timer_run(self, arg):
+        # TODO: code
+        now = time.time()
+        self._quick_question.refresh(now)
+        self._long_question.refresh(now)
+
+        self.timer_run(arg)
 
 
 def main():
