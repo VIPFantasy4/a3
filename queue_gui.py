@@ -324,7 +324,7 @@ class QuickQuestion(tk.Frame):
 
 class LongQuestion(tk.Frame):
     """
-    the widget for displaying QuickQuestion panel
+    the widget for displaying LongQuestion panel
     """
 
     def __init__(self, parent):
