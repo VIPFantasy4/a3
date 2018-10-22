@@ -1,10 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter.messagebox import showinfo, showwarning, showerror, askquestion
-from tkinter import ttk
 
-import sys
 import time
+import random
 import threading
 
 # Fill these in with your details
@@ -12,8 +11,66 @@ __author__ = ''
 __email__ = ''
 __date__ = ''
 
+G = []
+
 QUICK_STUDENT_DICT = {}
 LONG_STUDENT_DICT = {}
+
+
+def play():
+    def combat(gesture):
+        order_list = list(command_dict.keys())
+        idiot_gesture = random.choice(order_list)
+        for key in command_dict.keys():
+            if key == idiot_gesture:
+                command_dict.get(key)[0].config(state=tk.NORMAL)
+            if key != gesture:
+                command_dict.get(key)[1].config(state=tk.DISABLED)
+        result = order_list.index(gesture) - order_list.index(idiot_gesture)
+        if gesture == idiot_gesture:
+            bar.config(text='DRAW')
+            showinfo('Draw', "You sure you have a same idea as noob?")
+            time.sleep(1)
+        elif result is 1 or result is -2:
+            reply = askquestion(type=messagebox.YESNO, title='You Slayer Man', message='Retry it?')
+            if reply == messagebox.NO:
+                root.destroy()
+                return
+        else:
+            reply = askquestion(type=messagebox.YESNO, title="It Serves You Right", message='Retry it?')
+            if reply == messagebox.NO:
+                root.destroy()
+                return
+        bar.config(text='VS')
+        for key in command_dict.keys():
+            command_dict.get(key)[0].config(state=tk.DISABLED)
+            command_dict.get(key)[1].config(state=tk.NORMAL)
+
+    showinfo('', "Let's get it!")
+    root = tk.Toplevel()
+    root.title('Finger-Guessing Game')
+    idiot = tk.Frame(root)
+    scissors_img, hammer_img, cloth_img = G[0].get_images()
+    scissors = tk.Button(idiot, image=scissors_img, state=tk.DISABLED)
+    scissors.pack(side=tk.LEFT, padx=44, pady=4)
+    hammer = tk.Button(idiot, image=hammer_img, state=tk.DISABLED)
+    hammer.pack(side=tk.LEFT, padx=44, pady=4)
+    cloth = tk.Button(idiot, image=cloth_img, state=tk.DISABLED)
+    cloth.pack(side=tk.LEFT, padx=44, pady=4)
+    idiot.pack()
+    tk.Label(root, text='↑ NOOB ↑').pack()
+    bar = tk.Label(root, text='VS', bg='red', fg='white', font='Arial 16 bold')
+    bar.pack(ipadx=227, pady=10)
+    tk.Label(root, text='↓ UGUY ↓').pack()
+    player_scissors = tk.Button(root, image=scissors_img, command=lambda: combat('scissors'))
+    player_scissors.pack(side=tk.LEFT, padx=44, pady=4)
+    player_hammer = tk.Button(root, image=hammer_img, command=lambda: combat('hammer'))
+    player_hammer.pack(side=tk.LEFT, padx=44, pady=4)
+    player_cloth = tk.Button(root, image=cloth_img, command=lambda: combat('cloth'))
+    player_cloth.pack(side=tk.LEFT, padx=44, pady=4)
+    command_dict = {'scissors': (scissors, player_scissors), 'hammer': (hammer, player_hammer),
+                    'cloth': (cloth, player_cloth)}
+    root.mainloop()
 
 
 def get_quick_student_dict():
@@ -46,12 +103,15 @@ def display_entry_widget(student_dict):
                 showwarning('Invalid Participation', "You're in line already!")
                 return
             else:
-                student_dict[name] = [True, student_dict[name][1] + 1, time.time()]
+                record_list = [True, student_dict[name][1], time.time()]
+                del (student_dict[name])
+                student_dict[name] = record_list
+            G[0].refresh()
             root.destroy()
         else:
             showerror('Not Be Empty', 'Please give the proper name!')
 
-    root = tk.Tk()
+    root = tk.Toplevel()
     root.title('')
     root.wm_attributes('-topmost', 1)
     label = tk.Label(root, text='Type Your Name:')
@@ -66,34 +126,55 @@ def display_entry_widget(student_dict):
 def get_display(record, now):
     delta = int(now - record)
     if delta < 60:
-        return 'a few seconds ago'
+        return 'a few seconds ago', delta
     if delta < 120:
-        return 'a minute ago'
+        return 'a minute ago', delta
     if delta < 3600:
-        return '{} minutes ago'.format(delta // 60)
+        return '{} minutes ago'.format(delta // 60), delta
     if delta < 7200:
-        return '1 hour ago'
-    return '{} hours age'.format(delta // 3600)
+        return '1 hour ago', delta
+    return '{} hours age'.format(delta // 3600), delta
 
 
-def get_waiting_list(student_dict, now):
+def get_notice(average):
+    if average < 60:
+        return 'a few seconds'
+    if average < 120:
+        return 'about a minute'
+    if average < 3600:
+        return 'about {} minutes'.format(average // 60)
+    if average < 7200:
+        return 'about 1 hour'
+    return 'about {} hours'.format(average // 3600)
+
+
+def get_waiting_list(student_dict):
     for key, value in student_dict.items():
         if value[0]:
-            yield (key, value[1], get_display(value[2], now))
+            yield (key, value[1], value[2])
 
 
 class TitlePanel(tk.Frame):
     def __init__(self, parent):
         super().__init__(parent, bg='#fefbed', relief=tk.GROOVE, bd=2)
 
-        tk.Label(self, text='\nImportant', bg='#fefbed', width=955, anchor=tk.W, fg='#c09853', font='Arial 16 bold',
-                 padx=24).pack(side=tk.TOP)
+        self.mystery = tk.Button(self, text='\nImportant', bg='#fefbed', width=955, anchor=tk.W, fg='#c09853',
+                                 font='Arial 16 bold', relief=tk.FLAT, command=play, padx=24)
+        self.mystery.bind('<Enter>', self.enter)
+        self.mystery.bind('<Leave>', self.leave)
+        self.mystery.pack(side=tk.TOP)
         tk.Label(self, text='Individual assessment items must be solely your own work. While students are '
                             'encouraged to have height-level conversations about the problems they are '
                             "trying to solve, you must not look at another student's code or copy from it. "
                             'The university uses sophisticated anti-collision measures to automatically '
                             'detect similarity between assignment submissions.\n', bg='#fefbed', anchor=tk.W,
                  justify=tk.LEFT, wraplength=914, pady=4).pack(side=tk.TOP)
+
+    def enter(self, event):
+        self.mystery.config(text='\nSuch a Fuss????')
+
+    def leave(self, event):
+        self.mystery.config(text='\nImportant')
 
 
 class ChoicePanel(tk.Frame):
@@ -130,8 +211,9 @@ class QuickQuestion(tk.Frame):
         children = list(self._bar.children.values())
         for i in range(len(children)):
             children[i].destroy()
-        waiting_list = list(get_waiting_list(get_quick_student_dict(), now))
+        waiting_list = list(get_waiting_list(get_quick_student_dict()))
         if not waiting_list:
+            self._notice.config(text='No students in queue.')
             return
         tk.Frame(self._bar, bg='#c0c0c0').grid(row=0, columnspan=5, ipadx=227, pady=10)
         tk.Label(self._bar, bg='white', text='#', font='Arial 10 bold').grid(row=1, column=0, sticky=tk.W)
@@ -139,18 +221,33 @@ class QuickQuestion(tk.Frame):
         tk.Label(self._bar, bg='white', text='Questions Asked', font='Arial 10 bold').grid(row=1, column=2, sticky=tk.W)
         tk.Label(self._bar, bg='white', text='Time', font='Arial 10 bold').grid(row=1, column=3, sticky=tk.W)
         tk.Frame(self._bar, bg='#c0c0c0').grid(row=2, columnspan=5, ipadx=227, pady=4)
+        total_time = 0
         for i in range(len(waiting_list)):
+            def cancel(name=waiting_list[i][0]):
+                get_quick_student_dict()[name][0] = False
+                self.refresh(time.time())
+
+            def accept(name=waiting_list[i][0]):
+                get_quick_student_dict()[name][1] += 1
+                get_quick_student_dict()[name][0] = False
+                self.refresh(time.time())
+
             row = i + 3
+            display, delta = get_display(waiting_list[i][2], now)
+            total_time += delta
             tk.Label(self._bar, bg='white', text=i + 1).grid(row=row, column=0, sticky=tk.W)
             tk.Label(self._bar, bg='white', text=waiting_list[i][0]).grid(row=row, column=1, sticky=tk.W)
             tk.Label(self._bar, bg='white', text=waiting_list[i][1]).grid(row=row, column=2, sticky=tk.W)
-            tk.Label(self._bar, bg='white', text=waiting_list[i][2]).grid(row=row, column=3, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=display).grid(row=row, column=3, sticky=tk.W)
             button_field = tk.Frame(self._bar, bg='white', relief=tk.GROOVE)
-            cancel = tk.Button(button_field, bg='#f6a5a3', relief=tk.GROOVE)
-            accept = tk.Button(button_field, bg='#a0e0aa', relief=tk.GROOVE)
-            cancel.pack(side=tk.LEFT, ipadx=9)
-            accept.pack(side=tk.LEFT, ipadx=9)
+            tk.Button(button_field, bg='#f6a5a3', relief=tk.GROOVE, command=cancel).pack(side=tk.LEFT, ipadx=9)
+            tk.Button(button_field, bg='#a0e0aa', relief=tk.GROOVE, command=accept).pack(side=tk.LEFT, ipadx=9)
             button_field.grid(row=row, column=4, sticky=tk.W)
+        self._notice.config(
+            text='An average wait time of {} for {}.'.format(get_notice(total_time // len(waiting_list)),
+                                                             '1 student' if len(
+                                                                 waiting_list) is 1 else '{} students'.format(
+                                                                 len(waiting_list))))
 
 
 class LongQuestion(tk.Frame):
@@ -182,19 +279,48 @@ class LongQuestion(tk.Frame):
         children = list(self._bar.children.values())
         for i in range(len(children)):
             children[i].destroy()
-        waiting_list = list(get_waiting_list(get_long_student_dict(), now))
+        waiting_list = list(get_waiting_list(get_long_student_dict()))
         if not waiting_list:
+            self._notice.config(text='No students in queue.')
             return
         tk.Frame(self._bar, bg='#c0c0c0').grid(row=0, columnspan=5, ipadx=227, pady=10)
         tk.Label(self._bar, bg='white', text='#', font='Arial 10 bold').grid(row=1, column=0, sticky=tk.W)
         tk.Label(self._bar, bg='white', text='Name', font='Arial 10 bold').grid(row=1, column=1, sticky=tk.W)
         tk.Label(self._bar, bg='white', text='Questions Asked', font='Arial 10 bold').grid(row=1, column=2, sticky=tk.W)
         tk.Label(self._bar, bg='white', text='Time', font='Arial 10 bold').grid(row=1, column=3, sticky=tk.W)
+        tk.Frame(self._bar, bg='#c0c0c0').grid(row=2, columnspan=5, ipadx=227, pady=4)
+        total_time = 0
+        for i in range(len(waiting_list)):
+            def cancel(name=waiting_list[i][0]):
+                get_long_student_dict()[name][0] = False
+                self.refresh(time.time())
+
+            def accept(name=waiting_list[i][0]):
+                get_long_student_dict()[name][1] += 1
+                get_long_student_dict()[name][0] = False
+                self.refresh(time.time())
+
+            row = i + 3
+            display, delta = get_display(waiting_list[i][2], now)
+            total_time += delta
+            tk.Label(self._bar, bg='white', text=i + 1).grid(row=row, column=0, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=waiting_list[i][0]).grid(row=row, column=1, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=waiting_list[i][1]).grid(row=row, column=2, sticky=tk.W)
+            tk.Label(self._bar, bg='white', text=display).grid(row=row, column=3, sticky=tk.W)
+            button_field = tk.Frame(self._bar, bg='white', relief=tk.GROOVE)
+            tk.Button(button_field, bg='#f6a5a3', relief=tk.GROOVE, command=cancel).pack(side=tk.LEFT, ipadx=9)
+            tk.Button(button_field, bg='#a0e0aa', relief=tk.GROOVE, command=accept).pack(side=tk.LEFT, ipadx=9)
+            button_field.grid(row=row, column=4, sticky=tk.W)
+        self._notice.config(
+            text='An average wait time of {} for {}.'.format(get_notice(total_time // len(waiting_list)),
+                                                             '1 student' if len(
+                                                                 waiting_list) is 1 else '{} students'.format(
+                                                                 len(waiting_list))))
 
 
 class QueueApp:
     DEFAULT_TITLE = 'CSSE1001 Queue'
-    DEFAULT_MODE = '955x600'
+    DEFAULT_MODE = '955x700'
 
     def __init__(self, master):
         self._master = master
@@ -220,13 +346,17 @@ class QueueApp:
         self._choice_panel.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
 
         # Timer
-        a = ['111', ]
-        self._timer = threading.Thread(target=self.timer_run, args=a)
+        self._timer = threading.Thread(target=self.timer_run)
         self._timer.setDaemon(True)
         self._timer.start()
 
         # Finger-Guessing Game
-        pass
+        self.scissors_img = tk.PhotoImage(file='images/scissors.gif')
+        self.hammer_img = tk.PhotoImage(file='images/hammer.gif')
+        self.cloth_img = tk.PhotoImage(file='images/cloth.gif')
+
+    def get_images(self):
+        return self.scissors_img, self.hammer_img, self.cloth_img
 
     def close(self):
         if self.can_close():
@@ -239,19 +369,21 @@ class QueueApp:
         else:
             return False
 
-    def timer_run(self, arg):
-        # TODO: code
+    def timer_run(self):
+        self.refresh()
+        time.sleep(10)
+        self.timer_run()
+
+    def refresh(self):
         now = time.time()
         self._quick_question.refresh(now)
         self._long_question.refresh(now)
-        time.sleep(4)
-        self.timer_run(arg)
 
 
 def main():
     """Sets-up the GUI for CSSE1001 Queue"""
     root = tk.Tk()
-    QueueApp(root)
+    G.append(QueueApp(root))
     root.mainloop()
 
 
