@@ -11,21 +11,36 @@ __author__ = ''
 __email__ = ''
 __date__ = ''
 
-G = []
+G = []  # self defined list for storing variable
 
-QUICK_STUDENT_DICT = {}
-LONG_STUDENT_DICT = {}
+QUICK_STUDENT_DICT = {}  # the asked quick questions students' data dict
+LONG_STUDENT_DICT = {}  # the asked long questions students' data dict
 
 
 def play():
+    """
+    Called when the hidden button be clicked
+    this method will display the game window of the Finger-Guessing Game
+    """
+
     def combat(gesture):
-        order_list = list(command_dict.keys())
-        idiot_gesture = random.choice(order_list)
+        """
+        the method calculates the result of game
+        Meanwhile, modifies the widgets and show some info to interact with player according to the game result
+        it's up to the gestures given by player and bot(purely random choice)
+        the way calculating result under 3 cases below
+        1. scissors to cloth, scissors won
+        2. hammer to scissors, hammer won
+        3. cloth to hammer, cloth won
+        :param gesture: the gesture given by player
+        """
+        order_list = list(command_dict.keys())  # ['scissors', 'hammer', 'cloth']
+        idiot_gesture = random.choice(order_list)  # bot's choice
         for key in command_dict.keys():
             if key == idiot_gesture:
-                command_dict.get(key)[0].config(state=tk.NORMAL)
+                command_dict.get(key)[0].config(state=tk.NORMAL)  # show the bot's choice
             if key != gesture:
-                command_dict.get(key)[1].config(state=tk.DISABLED)
+                command_dict.get(key)[1].config(state=tk.DISABLED)  # disable the remaining gestures
         result = order_list.index(gesture) - order_list.index(idiot_gesture)
         if gesture == idiot_gesture:
             bar.config(text='DRAW')
@@ -74,30 +89,54 @@ def play():
 
 
 def get_quick_student_dict():
+    """
+    get the asked quick questions students' data dict
+    :return: the asked quick questions students' data dict
+    """
     return QUICK_STUDENT_DICT
 
 
 def get_long_student_dict():
+    """
+    get the asked long questions students' data dict
+    :return: the asked long questions students' data dict
+    """
     return LONG_STUDENT_DICT
 
 
 def add_quick_student_dict():
+    """
+    Called when the Request Quick Help button be clicked
+    """
     display_entry_widget(get_quick_student_dict())
 
 
 def add_long_student_dict():
+    """
+    Called when the Request Long Help button be clicked
+    """
     display_entry_widget(get_long_student_dict())
 
 
 def display_entry_widget(student_dict):
+    """
+    display a entry widget for the students to type their name
+    add the student to the queue after they typed a correct name
+    :param student_dict: QUICK_STUDENT_DICT or LONG_STUDENT_DICT
+    """
+
     def add_student_dict():
-        name = entry.get()
+        """
+        validate the name if it's proper
+        add this student to the queue
+        """
+        name = entry.get()  # get what student typed
         if name and not name.strip():
             showerror('Not Just Typed Spaces', 'Please give the proper name!')
             return
         name = name.strip()
         if name:
-            if name not in student_dict:
+            if name not in student_dict:  # a student never asking a question of a type(long or quick)
                 student_dict[name] = [True, 0, time.time()]
             elif student_dict[name][0]:
                 showwarning('Invalid Participation', "You're in line already!")
@@ -124,6 +163,12 @@ def display_entry_widget(student_dict):
 
 
 def get_display(record, now):
+    """
+    count the delta and return the str according to this delta
+    :param record: the student's time stamp when joined the queue
+    :param now: the time stamp when the sub method called
+    :return: the display str for showing the wait time of the student
+    """
     delta = int(now - record)
     if delta < 60:
         return 'a few seconds ago', delta
@@ -137,6 +182,11 @@ def get_display(record, now):
 
 
 def get_notice(average):
+    """
+    same like get_display but this method return for displaying average
+    :param average: the average wait time given by sub method
+    :return: the display str for showing the average wait time
+    """
     if average < 60:
         return 'a few seconds'
     if average < 120:
@@ -149,12 +199,21 @@ def get_notice(average):
 
 
 def get_waiting_list(student_dict):
+    """
+    for the student dict and get the student who is waiting
+    :param student_dict: QUICK_STUDENT_DICT or LONG_STUDENT_DICT
+    :return: found one, yield one
+    """
     for key, value in student_dict.items():
-        if value[0]:
+        if value[0]:  # the first element is a flag representing whether this student is in line
             yield (key, value[1], value[2])
 
 
 class TitlePanel(tk.Frame):
+    """
+    the widget for displaying headline
+    """
+
     def __init__(self, parent):
         super().__init__(parent, bg='#fefbed', relief=tk.GROOVE, bd=2)
 
@@ -178,11 +237,19 @@ class TitlePanel(tk.Frame):
 
 
 class ChoicePanel(tk.Frame):
+    """
+    sub frame contains QuickQuestion panel and LongQuestion panel
+    """
+
     def __init__(self, parent):
         super().__init__(parent)
 
 
 class QuickQuestion(tk.Frame):
+    """
+    the widget for displaying QuickQuestion panel
+    """
+
     def __init__(self, parent):
         super().__init__(parent, bg='white')
 
@@ -208,6 +275,11 @@ class QuickQuestion(tk.Frame):
         self._bar.pack()
 
     def refresh(self, now):
+        """
+        the method called by timer roughly once every ten seconds for refreshing the state of quick question queue
+        Meanwhile, draw the queue
+        :param now: the time stamp when the sub method called
+        """
         children = list(self._bar.children.values())
         for i in range(len(children)):
             children[i].destroy()
@@ -251,6 +323,10 @@ class QuickQuestion(tk.Frame):
 
 
 class LongQuestion(tk.Frame):
+    """
+    the widget for displaying QuickQuestion panel
+    """
+
     def __init__(self, parent):
         super().__init__(parent, bg='white')
 
@@ -276,6 +352,11 @@ class LongQuestion(tk.Frame):
         self._bar.pack()
 
     def refresh(self, now):
+        """
+        the method called by timer roughly once every ten seconds for refreshing the state of long question queue
+        Meanwhile, draw the queue
+        :param now: the time stamp when the sub method called
+        """
         children = list(self._bar.children.values())
         for i in range(len(children)):
             children[i].destroy()
@@ -319,6 +400,9 @@ class LongQuestion(tk.Frame):
 
 
 class QueueApp:
+    """
+    QueueApp
+    """
     DEFAULT_TITLE = 'CSSE1001 Queue'
     DEFAULT_MODE = '955x700'
 
@@ -351,6 +435,7 @@ class QueueApp:
         self._timer.start()
 
         # Finger-Guessing Game
+        # store the image resources
         self.scissors_img = tk.PhotoImage(file='images/scissors.gif')
         self.hammer_img = tk.PhotoImage(file='images/hammer.gif')
         self.cloth_img = tk.PhotoImage(file='images/cloth.gif')
@@ -383,7 +468,7 @@ class QueueApp:
 def main():
     """Sets-up the GUI for CSSE1001 Queue"""
     root = tk.Tk()
-    G.append(QueueApp(root))
+    G.append(QueueApp(root))  # append QueueApp instance into global list G in order to use it in other methods' region
     root.mainloop()
 
 
